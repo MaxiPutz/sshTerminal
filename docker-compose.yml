@@ -1,0 +1,9 @@
+services:
+  builder:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./bin:/output
+    # This command copies the binaries from /app/bin (inside the image) to the mounted /output directory.
+    command: sh -c "cp -r /app/bin/* /output"
