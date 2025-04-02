@@ -1,0 +1,44 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ main ]  # Trigger on pushes to the main branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Build Docker image
+        run: docker build -t myapp .
+
+      - name: Verify binaries exist in image
+        run: docker run --rm myapp ls -l /app/bin
+        # This step lists the contents of /app/bin to verify the binaries are present.
+      
+      - name: Extract binaries from Docker image
+        run: |
+          # Create an output folder and run a container that copies /app/bin to it.
+          mkdir -p output
+          docker run --rm -v ${{ github.workspace }}/output:/output myapp cp -r /app/bin /output
+          
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.sha }}
+          name: "Release ${{ github.sha }}"
+          body: "Automated build from commit ${{ github.sha }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Asset (Linux binary)
+        uses: softprops/action-gh-release@v1
+        with:
+          files: output/bin/myapp-linux-amd64  # Adjust this path if needed
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
