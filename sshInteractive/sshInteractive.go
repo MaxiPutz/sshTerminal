@@ -19,16 +19,7 @@ type SSHInteractive struct {
 }
 
 func (si *SSHInteractive) SetPty(row, col int) {
-	modes := ssh.TerminalModes{
-		ssh.ECHO:          1,
-		ssh.TTY_OP_ISPEED: 14400,
-		ssh.TTY_OP_OSPEED: 14400,
-	}
-
-	term := "xterm-256color"
-	if err := si.Session.RequestPty(term, int(row), int(col), modes); err != nil {
-		fmt.Print("failed to request pty: %w", err)
-	}
+	si.Session.WindowChange(row, col)
 }
 
 func NewSSHShell(username, password, ip string) (*SSHInteractive, error) {
@@ -112,7 +103,6 @@ func NewSSHShell(username, password, ip string) (*SSHInteractive, error) {
 					shell.LastCommand = s
 
 				}
-				fmt.Printf("shell.LastCommand: %v\n", shell.LastCommand)
 				shell.ReadFromServer(buf[:n])
 			}
 		}

@@ -68,7 +68,6 @@ func main() {
 
 		shell.SetPty(int(termData.Row), int(termData.Col))
 
-		fmt.Printf("termData: %v\n", termData)
 		if err != nil {
 			fmt.Printf("err: %v\n", err)
 			return c.Context().Err()
@@ -80,15 +79,12 @@ func main() {
 			Data: shell.LastCommand,
 		}
 
-		fmt.Printf("data: %v\n", data)
-
 		return c.JSON(data)
 	})
 
 	app.Get("/ws/:id", websocket.New(func(c *websocket.Conn) {
 		shell.ReadFromServer = func(data []byte) {
-			fmt.Printf("data: %v", string(data))
-			if err := c.WriteMessage(websocket.TextMessage, data); err != nil {
+			if err := c.WriteMessage(websocket.BinaryMessage, data); err != nil {
 				fmt.Printf("Error writing to websocket: %v\n", err)
 			}
 		}
@@ -96,7 +92,6 @@ func main() {
 		for {
 			_, msg, err := c.ReadMessage()
 			if err != nil {
-				fmt.Printf("Error reading websocket message: %v\n", err)
 				break // Exit the loop on error (connection closed or read failure)
 			}
 			shell.WriteToServer(msg)

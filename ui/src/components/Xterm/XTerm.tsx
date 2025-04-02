@@ -4,6 +4,7 @@ import { FitAddon } from "xterm-addon-fit";
 import { ENV } from "../../App";
 import { AttachAddon } from "xterm-addon-attach";
 
+let timeOut: number | undefined = undefined
 export function Xterm() {
   const refXtermContainer = useRef<HTMLDivElement>(null);
   const refXtermShell = useRef<Terminal | null>(null);
@@ -19,7 +20,8 @@ export function Xterm() {
     if (!refXtermContainer.current) return
 
     const term = new Terminal({
-      scrollback: 1000
+      scrollback: 1000,
+      fontFamily: '"JetBrainsMonoNerdFont", monospace', 
     });
     refXtermShell.current = term
 
@@ -40,36 +42,71 @@ export function Xterm() {
 
     console.log(term.cols, "cols");
     console.log(term.rows, "row");
-    
+
 
     // Fetch initial data if needed.
-    fetch(`${ENV.HTTP_URL}/init`, {
-      method: "POST",
-      headers : {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        row: term.rows,
-        col: term.cols
+    setTimeout(() => {
+      fetch(`${ENV.HTTP_URL}/init`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          row: term.rows,
+          col: term.cols
+        })
       })
+        .then((res) => res.json())
+        .then((ele) => {
+          console.log("Init data:", ele);
+          //term.write(ele.data);
+        });
+
+
+    }, 300);
+
+
+
+    const resizeObserver = new ResizeObserver(() => {
+      console.log("resize event is fired");
+      refFitAddon.current?.fit()
+      console.log(refXtermShell.current?.cols)
+      console.log(refXtermShell.current?.rows)
+
+      clearTimeout(timeOut)
+      timeOut = setTimeout(() => {
+        fetch(`${ENV.HTTP_URL}/init`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            row: term.rows,
+            col: term.cols
+          })
+        })
+          .then((res) => res.json())
+          .then((ele) => {
+            console.log("Init data:", ele);
+            //term.write(ele.data);
+          });
+      }, 300);
     })
-      .then((res) => res.json())
-      .then((ele) => {
-        console.log("Init data:", ele);
-        term.write(ele.data);
-      });
 
-    return
-    /*
-  // Handle window resize to refit the terminal.
-  window.addEventListener("resize", handleResize);
+    resizeObserver.observe(refXtermContainer.current)
 
-  return () => {
-    window.removeEventListener("resize", handleResize);
-  };
-  */
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+
   }, [refXtermContainer, refXtermShell, refWebSocket, refAttachAddon, refFitAddon]);
 
 
-  return <div ref={refXtermContainer}/>;
+  return <div className="xterm-container" ref={refXtermContainer} />;
+}
+
+
+function handleResize() {
+  console.log("resized");
+
 }
