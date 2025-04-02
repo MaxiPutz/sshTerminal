@@ -58,7 +58,22 @@ func main() {
 	app := fiber.New()
 	app.Use(cors.New())
 
-	app.Get("/init", func(c *fiber.Ctx) error {
+	app.Post("/init", func(c *fiber.Ctx) error {
+		termData := struct {
+			Row int16 `json:"row"`
+			Col int16 `josn:"col"`
+		}{}
+		fmt.Printf("termData: %v\n", termData)
+		err := c.BodyParser(&termData)
+
+		shell.SetPty(int(termData.Row), int(termData.Col))
+
+		fmt.Printf("termData: %v\n", termData)
+		if err != nil {
+			fmt.Printf("err: %v\n", err)
+			return c.Context().Err()
+		}
+
 		data := struct {
 			Data string `json:"data"`
 		}{

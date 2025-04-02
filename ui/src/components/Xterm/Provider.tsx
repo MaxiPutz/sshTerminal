@@ -1,86 +1,82 @@
 import { createContext, useState, useContext, ReactNode, useEffect, useRef } from "react";
 import { ENV } from "../../App";
 
-export const XtermContext = createContext({
-    userInput: [""],
-    setUserInput: (data: string[]) => {
-        console.log(data);
-        
-    },
-    serverOutput: [""],
-    setServerOutput: (data: string[]) => { console.log(data);
-    },
-} as {
-    userInput: string[],
-    setUserInput: (data :string[]) => void,
-    serverOutput: string[],
-    setServerOutput: (data : string[]) => void
-} );
+// Define the context types to use binary data (Uint8Array)
+interface XtermContextType {
+  userInput: Uint8Array;
+  setUserInput: (data: Uint8Array) => void;
+  serverOutput: Uint8Array;
+  setServerOutput: (data: Uint8Array) => void;
+}
+
+export const XtermContext = createContext<XtermContextType>({
+  userInput: new Uint8Array(),
+  setUserInput: () => {},
+  serverOutput: new Uint8Array(),
+  setServerOutput: () => {},
+});
 
 export const XtermProvider = ({ children }: { children: ReactNode }) => {
-    const [userInput, setUserInput] = useState([""]);
-    const [serverOutput, setServerOutput] = useState([""]);
-    const socketRef = useRef<WebSocket | null>(null);
+  const [userInput, setUserInput] = useState<Uint8Array>(new Uint8Array());
+  const [serverOutput, setServerOutput] = useState<Uint8Array>(new Uint8Array());
+  const socketRef = useRef<WebSocket | null>(null);
 
+  // Connect to the WebSocket server on mount.
+  useEffect(() => {
+    // Create the socket and set binaryType so that we receive ArrayBuffers.
+    const socket = new WebSocket(ENV.WS_URL);
+    socket.binaryType = "arraybuffer";
+    socketRef.current = socket;
 
- 
+    socket.onopen = () => {
+      console.log("WebSocket connection opened");
+    };
 
-    // Connect to the WebSocket server on mount.
-    useEffect(() => {
-        // Adjust the URL to your server's address and desired path.
-        const socket = new WebSocket(ENV.WS_URL);
-        socketRef.current = socket;
+    socket.onmessage = (event) => {
+      console.log("Received binary message:", event.data);
+      // Convert the ArrayBuffer to a Uint8Array and update state.
+      setServerOutput(new Uint8Array(event.data));
+    };
 
-        socket.onopen = () => {
-            console.log("WebSocket connection opened");
-        };
+    socket.onerror = (err) => {
+      console.error("WebSocket error:", err);
+    };
 
-        socket.onmessage = (event) => {
-            console.log("Received message:", event.data);
-            setServerOutput([event.data]);
-        };
+    socket.onclose = () => {
+      console.log("WebSocket connection closed");
+    };
 
-        socket.onerror = (err) => {
-            console.error("WebSocket error:", err);
-        };
+    // Cleanup on unmount.
+    return () => {
+      socket.close();
+    };
+  }, []);
 
-        socket.onclose = () => {
-            console.log("WebSocket connection closed");
-        };
+  // Whenever userInput changes, send it over the socket.
+  useEffect(() => {
+    if (userInput && socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      socketRef.current.send(userInput);
+    }
+  }, [userInput]);
 
-
-
-        // Cleanup on unmount.
-        return () => {
-            socket.close();
-        };
-    }, []);
-
-    // Whenever userInput changes, send it over the socket.
-    useEffect(() => {
-        if (userInput && socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-            socketRef.current.send(userInput[0]);
-        }
-    }, [userInput]);
-
-    return (
-        <XtermContext.Provider
-            value={{
-                userInput,
-                setUserInput,
-                serverOutput,
-                setServerOutput,
-            }}
-        >
-            {children}
-        </XtermContext.Provider>
-    );
+  return (
+    <XtermContext.Provider
+      value={{
+        userInput,
+        setUserInput,
+        serverOutput,
+        setServerOutput,
+      }}
+    >
+      {children}
+    </XtermContext.Provider>
+  );
 };
 
 export const useXterm = () => {
-    const context = useContext(XtermContext);
-    if (!context) {
-        throw new Error("useXterm must be used within an XtermProvider");
-    }
-    return context;
+  const context = useContext(XtermContext);
+  if (!context) {
+    throw new Error("useXterm must be used within an XtermProvider");
+  }
+  return context;
 };

@@ -15,6 +15,20 @@ type SSHInteractive struct {
 	WriteToServer  func(data []byte)
 	ReadFromServer func(data []byte)
 	LastCommand    string
+	Session        ssh.Session
+}
+
+func (si *SSHInteractive) SetPty(row, col int) {
+	modes := ssh.TerminalModes{
+		ssh.ECHO:          1,
+		ssh.TTY_OP_ISPEED: 14400,
+		ssh.TTY_OP_OSPEED: 14400,
+	}
+
+	term := "xterm-256color"
+	if err := si.Session.RequestPty(term, int(row), int(col), modes); err != nil {
+		fmt.Print("failed to request pty: %w", err)
+	}
 }
 
 func NewSSHShell(username, password, ip string) (*SSHInteractive, error) {
@@ -55,7 +69,7 @@ func NewSSHShell(username, password, ip string) (*SSHInteractive, error) {
 	}
 
 	term := "xterm-256color"
-	if err := session.RequestPty(term, 65, 300, modes); err != nil {
+	if err := session.RequestPty(term, 24, 78, modes); err != nil {
 		return nil, fmt.Errorf("failed to request pty: %w", err)
 	}
 
@@ -80,10 +94,11 @@ func NewSSHShell(username, password, ip string) (*SSHInteractive, error) {
 		IP:             ip,
 		WriteToServer:  writeToServer,
 		ReadFromServer: readFromServer,
+		Session:        *session,
 	}
 	// Start a goroutine to continuously read from the server.
 	go func() {
-		buf := make([]byte, 1024) // adjust buffer size as needed
+		buf := make([]byte, 16) // adjust buffer size as needed
 		for {
 			n, err := stdoutPipe.Read(buf)
 			if err != nil {
