@@ -11,7 +11,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v1
 
     - name: Build Docker image
       run: |
@@ -22,7 +22,7 @@ jobs:
         docker run --rm -v "$(pwd):/output" my-image cp /path/to/binaries/* /output
 
     - name: Upload binaries
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v1.0.1
       with:
         name: binaries
         path: ./path/to/binaries/*
