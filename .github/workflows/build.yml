@@ -7,21 +7,20 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v3
 
       - name: Build and run Docker Compose to extract binaries
-        run: |
-          docker-compose up --build builder
+        run: docker-compose up --build builder
 
       - name: List extracted binaries
         run: ls -la bin
 
       - name: Upload binaries as artifact
-        uses: actions/upload-artifact@v3.1.2
+        uses: actions/upload-artifact@v2
         with:
           name: myapp-binaries
           path: bin
