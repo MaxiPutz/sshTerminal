@@ -28,6 +28,7 @@ func main() {
 	username := os.Getenv("USERNAME")
 	password := os.Getenv("PASSWORD")
 	ip := os.Getenv("IP")
+	port := os.Getenv("PORT")
 
 	fmt.Printf("username: %v\n", username)
 	fmt.Printf("ip: %v\n", ip)
@@ -103,7 +104,7 @@ func main() {
 		Browse:     true,
 		PathPrefix: "/ui/dist",
 	}))
-	if err := app.Listen(":3000"); err != nil {
+	if err := app.Listen(":" + port); err != nil {
 		log.Fatalf("failed to start Fiber server: %v", err)
 	}
 
