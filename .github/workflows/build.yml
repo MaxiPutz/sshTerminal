@@ -2,26 +2,27 @@ name: Build Docker and Extract Binaries
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+    branches:
+      - main
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v1
 
-      - name: Build and run Docker Compose to extract binaries
-        run: docker-compose up --build builder
+    - name: Build Docker image
+      run: |
+        docker build -t my-image .
 
-      - name: List extracted binaries
-        run: ls -la bin
+    - name: Extract binaries
+      run: |
+        docker run --rm -v "$(pwd):/output" my-image cp /path/to/binaries/* /output
 
-      - name: Upload binaries as artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: myapp-binaries
-          path: bin
-
+    - name: Upload binaries
+      uses: actions/upload-artifact@v1.0.1
+      with:
+        name: binaries
+        path: ./path/to/binaries/*
